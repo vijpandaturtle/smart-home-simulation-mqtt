@@ -25,7 +25,8 @@ class Edge_Server:
     # Connect method to subscribe to various topics.     
     def _on_connect(self, client, userdata, flags, result_code):
         print(f'Connected Edge Server "{self._instance_id}" with result code={str(result_code)}')
-        self.client.subscribe("Devices/#")
+        self.client.subscribe("devices/+/light/#")
+        self.client.subscribe("devices/+/ac/#")
         
     # method to process the received messages and publish them on relevant topics 
     # this method can also be used to take the action based on received commands
@@ -34,7 +35,9 @@ class Edge_Server:
         if msg.topic.find("/REG") != -1:
             msg_json = json.loads(msg.payload)
             device_id = msg_json["device_id"]
-            self.client.publish(f"Devices/{device_id}/CONFREG", f"Device {device_id} successfully registered")
+            device_type = msg_json["device_type"]
+            room_type = msg_json["room_type"]
+            self.client.publish(f"devices/{room_type}/{device_type}/{device_id}/CONFREG", f"Device {device_id} successfully registered")
             self._registered_list.append(msg.payload)
 
         if msg.topic.find("/STATS") != -1:
@@ -52,7 +55,7 @@ class Edge_Server:
             print(f"Status of device {device_id} is {command_status}")
     
     
-    # Filtering the publish topics based on the diiferent type of request recieved. 
+    # Filtering the publish topics based on the diferent type of request recieved. 
     def _filter_topics(self, publish_topic, subtopic):
         pass
 
@@ -61,22 +64,28 @@ class Edge_Server:
         return self._registered_list
         
     # Getting the status for the connected devices
-    def get_status(self, device_ids):
-        for device_id in device_ids:
-            self.client.publish(f"Devices/{device_id}/GETSTAT", f"Requesting device status of {device_id}")
+    def get_status(self, device_type, room_type, device_id, status_type):
+        if status_type == "SWITCH" :         
+            self.client.publish(f"devices/{room_type}/{device_type}/{device_id}/GETSTAT", f"Requesting device status of {device_id}")
+        elif status_type == "COMMAND":
+            self.client.publish(f"devices/{room_type}/{device_type}/{device_id}/GETCOMMAND", f"Requesting device status of {device_id}")
 
     # Controlling and performing the operations on the devices
     # based on the request received
-    def set_status(self, device_id, switch_state, command_type):
+    def set_status(self, device_type, room_type, device_id, switch_state, command_type):
         if command_type == "SWITCH" :         
             set_status_msg = json.dumps({
                 "device_id" : device_id,
+                "device_type" : device_type,
+                "room_type" : room_type,
                 "switch_status" : switch_state
             })
-            self.client.publish(f"Devices/{device_id}/SETSTAT", set_status_msg)
-        if command_type == "COMMAND":
+            self.client.publish(f"devices/{room_type}/{device_type}/{device_id}/SETSTAT", set_status_msg)
+        elif command_type == "COMMAND":
             set_status_msg = json.dumps({
                 "device_id" : device_id,
+                "device_type" : device_type,
+                "room_type" : room_type,
                 "command_status" : switch_state
             })
-            self.client.publish(f"Devices/{device_id}/SETCOMMAND", set_status_msg)
+            self.client.publish(f"devices/{room_type}/{device_type}/{device_id}/SETCOMMAND", set_status_msg)
