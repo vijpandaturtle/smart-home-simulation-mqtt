@@ -54,11 +54,6 @@ class Edge_Server:
             command_status = msg_json["command_status"]
             print(f"Status of device {device_id} is {command_status}")
     
-    
-    # Filtering the publish topics based on the diferent type of request recieved. 
-    def _filter_topics(self, publish_topic, subtopic):
-        pass
-
     # Returning the current registered list
     def get_registered_device_list(self):
         return self._registered_list
